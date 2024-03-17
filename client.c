@@ -1,7 +1,8 @@
 // Client side C program to demonstrate Socket
 // programming
-#include <arpa/inet.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -9,7 +10,7 @@
  
 int main(int argc, char const* argv[])
 {
-    int status, valread, client_fd;
+    int status, client_fd;
     struct sockaddr_in serv_addr;
     char buffer[1024] = { 0 };
 
@@ -33,14 +34,25 @@ int main(int argc, char const* argv[])
         return -1;
     }
 
-    char user_input[1024] = {0};
-    printf("Say: "); fgets(user_input, 1024, stdin);
-    
-    send(client_fd, user_input, strlen(user_input), 0);
-    // printf("message sent\n");
+    while(1){
+        // send to server
+        printf("Say: "); fgets(buffer, 1024, stdin);
+        if(send(client_fd, buffer, strlen(buffer), 0) < 0){
+            perror("Send failed");
+            return EXIT_FAILURE;
+        }
+        
+        // receive from server
+        int read_size = recv(client_fd, buffer, 1024 - 1, 0);
+        buffer[read_size - 1] = '\0'; // add null terminator and fix buffer leak
 
-    valread = read(client_fd, buffer, 1024 - 1); // subtract 1 for the null terminator at the end
-    printf("server: %s\n", buffer);
+        if(read_size < 0){ // subtract 1 for the null terminator at the end
+            perror("recv failed");
+            break;
+        }
+        
+        printf("server: %s\n", buffer);
+    }
  
     // closing the connected socket
     close(client_fd);

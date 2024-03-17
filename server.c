@@ -6,6 +6,7 @@
 #include <unistd.h>
 #define PORT 8080
 
+
 int main(int argc, char** argv){
     int server_fd;
     struct sockaddr_in addr;
@@ -13,7 +14,7 @@ int main(int argc, char** argv){
     int opt = 1;
 
     int client_fd;
-    char buffer[256] = {0};
+    char buffer[1024] = {0};
     char* server_message = "message received";
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -45,10 +46,25 @@ int main(int argc, char** argv){
         exit(EXIT_FAILURE);
     }
     
-    int valread = read(client_fd, buffer, 256 - 1);
-    printf("Client sent: %s\n", buffer);
-    send(client_fd, server_message, strlen(server_message), 0);
-
+    while(1){
+        // read from client
+        int read_size = recv(client_fd, buffer, 1024 - 1, 0);
+        buffer[read_size-1] = '\0'; // adding null terminator to message and fix buffer leak
+        
+        if (read_size > 0){
+            printf("Client sent: %s\n", buffer);
+            // send response to client
+            send(client_fd, server_message, strlen(server_message), 0);
+        }
+        if (read_size == 0){
+            puts("CLient disconnected");
+            break;
+        }
+        else if (read_size < 0){
+            perror("recv failed");
+            break;
+        }
+    }
     
     close(client_fd);
     close(server_fd);

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #define PORT 8080
 
@@ -40,29 +41,37 @@ int main(int argc, char** argv){
         perror("listen");
         exit(EXIT_FAILURE);
     }
-
-    if ((client_fd = accept(server_fd, (struct sockaddr * restrict)&addr, &addrlen)) < 0) {
-        perror("accept");
-        exit(EXIT_FAILURE);
-    }
     
+    pid_t childpid;
+    int cnt = 0;
     while(1){
-        // read from client
-        int read_size = recv(client_fd, buffer, 1024 - 1, 0);
-        buffer[read_size-1] = '\0'; // adding null terminator to message and fix buffer leak
-        
-        if (read_size > 0){
-            printf("Client sent: %s\n", buffer);
-            // send response to client
-            send(client_fd, server_message, strlen(server_message), 0);
+        // accept client
+        if ((client_fd = accept(server_fd, (struct sockaddr * restrict)&addr, &addrlen)) < 0) {
+            perror("accept");
+            exit(EXIT_FAILURE);
         }
-        if (read_size == 0){
-            puts("CLient disconnected");
-            break;
-        }
-        else if (read_size < 0){
-            perror("recv failed");
-            break;
+
+        printf("connected %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+        printf("clients connected: %d\n\n", ++cnt);
+
+        if ((childpid = fork()) == 0){
+            // read from client
+            int read_size = recv(client_fd, buffer, 1024 - 1, 0);
+            buffer[read_size-1] = '\0'; // adding null terminator to message and fix buffer leak
+            
+            if (read_size > 0){
+                printf("Client sent: %s\n", buffer);
+                // send response to client
+                send(client_fd, server_message, strlen(server_message), 0);
+            }
+            if (read_size == 0){
+                puts("CLient disconnected");
+                break;
+            }
+            else if (read_size < 0){
+                perror("recv failed");
+                break;
+            }
         }
     }
     

@@ -36,7 +36,8 @@ int main(int argc, char const* argv[])
 
     while(1){
         // send to server
-        printf("Say: "); fgets(buffer, 1024, stdin);
+        printf("Say: "); 
+        fgets(buffer, 1024, stdin);
         if(send(client_fd, buffer, strlen(buffer), 0) < 0){
             perror("Send failed");
             return EXIT_FAILURE;
